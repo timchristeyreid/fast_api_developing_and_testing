@@ -30,4 +30,6 @@ def create_beer(beer: Beer):
 
 @app.get("/beer/{id}", response_model=Beer)
 def get_beer(id:int):
+    if id not in db:
+        raise HTTPException(status_code=404, detail="Beer does not exist")
     return db[id]

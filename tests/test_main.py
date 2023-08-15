@@ -37,3 +37,8 @@ def test_create_invalid_existing_beer():
     )
     assert response.status_code == 400
     assert response.json() == {"detail":"Beer ID already exists"}
+
+def test_get_beer_invalid_id():
+    response = client.get("/beer/10")
+    assert response.status_code == 404
+    assert response.json() == {"detail":"Beer does not exist"}

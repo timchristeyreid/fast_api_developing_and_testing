@@ -5,6 +5,7 @@ from app.main import app
 client = TestClient(app)
 
 def test_create_beer():
+    ''' Tests the create_beer function with a valid input'''
     response = client.post(
         "/create-beer/",
         json={
@@ -19,7 +20,7 @@ def test_create_beer():
         "abv": 4}
 
 def test_get_beer_by_id():
-    response = client.get("/beer/1")
+    response = client.get("/beer/1")   
     assert response.status_code == 200
     assert response.json() == {
             "id":1,

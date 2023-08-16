@@ -1,35 +1,43 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy.orm import Session
+
+from . import crud, models, schemas
+from .database import SessionLocal, engine
+
 
 app = FastAPI()
+
 
 # Defining an initial test route
 @app.get("/")
 def home():
     return {"message":"hello"}
 
-#storing all the beers 
-db = {
-    1: {"id": 1, "name": "IPA", "abv": 5}
-}
+
+# Create the database tables
+models.Base.metadata.create_all(bind=engine)
 
 
-#Creating a class to be used in request body
-class Beer(BaseModel):
-    id: int
-    name: str
-    abv: int
-
-@app.post("/create-beer/", response_model=Beer)
-def create_beer(beer: Beer):
-    if beer.id in db:
-        raise HTTPException(status_code=400, detail="Beer ID already exists")
-    db[beer.id] = beer
-    return beer
+# Dependency will create a new SQLAlchemy SessionLocal for each request
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
-@app.get("/beer/{id}", response_model=Beer)
-def get_beer(id:int):
-    if id not in db:
+@app.post("/create-beer/", response_model=schemas.Beer)
+def create_beer(beer: schemas.CreateBeer, db: Session = Depends(get_db)):
+    db_beer = crud.get_beer_by_name(db, name=beer.name )
+    if db_beer:
+        raise HTTPException(status_code=400, detail="Beer already exists")
+    return crud.create_beer(db=db, beer=beer)
+
+
+@app.get("/beer/{id}", response_model=schemas.Beer)
+def get_beer(id:int, db: Session = Depends(get_db)):
+    db_beer = crud.get_beer(db, id=id)
+    if db_beer is None:
         raise HTTPException(status_code=404, detail="Beer does not exist")
-    return db[id]
+    return db_beer
